@@ -1,0 +1,11 @@
+[package]
+name = "colliflower"
+version = "0.1.0"
+edition = "2024"
+description = "Implements various collection data structures"
+readme = "README.md"
+documentation = "https://stratagyn.github.io/colliflower"
+repository = "https://github.com/stratagyn/colliflower"
+license = "MIT OR Apache-2.0"
+keywords = ["data-structures", "collections", "stack", "map"]
+categories = ["data-structures"]
