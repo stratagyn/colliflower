@@ -1,6 +1,6 @@
 A collection of collections
 
-* [Documentation](https://stratagyn.github.io/bit-byte-bit)
+* [Documentation](https://stratagyn.github.io/colliflower)
 
 ## Currently Implemented Collections
 
