@@ -1,5 +1,9 @@
 //! Implements a last-in-first-out data structure.
 
+use std::cmp::Ordering;
+use std::collections::VecDeque;
+use std::fmt::{Debug, Formatter};
+
 pub struct Stack<T>(Vec<T>);
 
 impl<T> Stack<T> {
@@ -127,6 +131,18 @@ impl<T> Stack<T> {
     /// ```
     pub fn drop(&mut self) { self.0.pop(); }
 
+    /// Converts a stack into its vector equivalent.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let stack: Stack<i32> = Stack::from(vec![0, 1, 2, 3, 4]);
+    /// let vec_stack = stack.into_vec();
+    ///
+    /// assert_eq!(vec_stack, vec![0, 1, 2, 3, 4]);
+    /// ```
+    pub fn into_vec(self) -> Vec<T> { self.0 }
+
     /// Whether a stack has any elements.
     ///
     /// ```
@@ -145,8 +161,28 @@ impl<T> Stack<T> {
     /// ```
     pub fn is_empty(&self) -> bool { self.0.is_empty() }
 
+    /// Iterates over the elements of the stack.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let stack: Stack<i32> = Stack::from(vec![0, 1, 2, 3, 4]);
+    /// let mut stack_iter = stack.iter();
+    ///
+    /// assert_eq!(stack_iter.next(), Some(&4));
+    /// ```
     pub fn iter(&self) -> impl Iterator<Item=&T> + '_ { self.0.iter().rev() }
 
+    /// Iterates over the elements of the stack in reverse order.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let stack: Stack<i32> = Stack::from(vec![0, 1, 2, 3, 4]);
+    /// let mut stack_iter = stack.iter_rev();
+    ///
+    /// assert_eq!(stack_iter.next(), Some(&0));
+    /// ```
     pub fn iter_rev(&self) -> impl Iterator<Item=&T> + '_ { self.0.iter() }
 
     /// Manipulates the stack `count` elements below the top.
@@ -753,6 +789,60 @@ impl<T: Clone> Stack<T> {
     }
 }
 
+impl<T> IntoIterator for Stack<T> {
+    type Item = T;
+    type IntoIter = std::iter::Rev<std::vec::IntoIter<T>>;
+
+    /// An iterator over elements of the stack
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    fn into_iter(self) -> Self::IntoIter { self.0.into_iter().rev() }
+}
+
+impl<T: Debug> Debug for Stack<T> {
+    fn fmt(&self, f: &mut Formatter<'_>) -> std::fmt::Result { self.0.fmt(f) }
+}
+
+impl<T> Default for Stack<T> {
+    fn default() -> Self { Self(vec![]) }
+}
+
+impl<T: Eq> Eq for Stack<T> { }
+
+impl<'a, T: Copy + 'a> Extend<&'a T> for Stack<T> {
+    /// Extends the stack by copying elements of an iterator.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let mut stack: Stack<i32> = Stack::from(vec![0, 1, 2, 3, 4]);
+    /// let mut extension = vec![5, 6, 7, 8];
+    ///
+    /// stack.extend(extension.as_slice());
+    ///
+    /// assert_eq!(stack.pop(), extension.pop());
+    /// ```
+    fn extend<I: IntoIterator<Item = &'a T>>(&mut self, iter: I) { self.0.extend(iter) }
+}
+
+impl<T> Extend<T> for Stack<T> {
+    /// Extends the stack with elements of an iterator.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let mut stack: Stack<i32> = Stack::from(vec![0, 1, 2, 3, 4]);
+    /// let mut extension = vec![5, 6, 7, 8];
+    ///
+    /// stack.extend(extension);
+    ///
+    /// assert_eq!(stack.pop(), Some(8));
+    /// ```
+    fn extend<I: IntoIterator<Item = T>>(&mut self, iter: I) { self.0.extend(iter) }
+}
+
 impl<T> From<Vec<T>> for Stack<T> {
     /// Creates a stack from a vector of elements with the last element on top.
     ///
@@ -790,7 +880,29 @@ impl<T: Clone> From<&[T]> for Stack<T> {
     ///
     /// assert_eq!(stack.peek(), Some(&9));
     /// ```
-    fn from(slice: &[T]) -> Self { Self::from(slice.to_vec()) }
+    fn from(slice: &[T]) -> Self { Self::from(Vec::from(slice)) }
+}
+
+impl<T: Clone> From<&mut [T]> for Stack<T> {
+    /// Creates a stack from a slice of clone-able elements with the last element on top.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let elements = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    /// let mut stack: Stack<i32> = Stack::from(elements.as_slice());
+    ///
+    /// assert_eq!(stack.peek(), Some(&9));
+    /// ```
+    fn from(slice: &mut [T]) -> Self { Self::from(Vec::from(slice)) }
+}
+
+impl<T> From<Stack<T>> for Vec<T> {
+    fn from(stack: Stack<T>) -> Self { stack.0 }
+}
+
+impl<T> From<Stack<T>> for VecDeque<T> {
+    fn from(stack: Stack<T>) -> Self { VecDeque::from(stack.0) }
 }
 
 impl<T> FromIterator<T> for Stack<T> {
@@ -806,14 +918,105 @@ impl<T> FromIterator<T> for Stack<T> {
     fn from_iter<I: IntoIterator<Item=T>>(iter: I) -> Self { Self(Vec::from_iter(iter)) }
 }
 
-impl<T> IntoIterator for Stack<T> {
-    type Item = T;
-    type IntoIter = std::iter::Rev<std::vec::IntoIter<T>>;
+impl<T: Ord> Ord for Stack<T> {
+    fn cmp(&self, other: &Self) -> Ordering {
+        let this_length = self.0.len();
+        let other_length = other.0.len();
 
-    /// An iterator over elements of the stack
-    ///
-    /// # Example
-    /// ```
-    /// # use colliflower::Stack;
-    fn into_iter(self) -> Self::IntoIter { self.0.into_iter().rev() }
+        let min_length = if other_length < this_length {
+            other_length
+        } else {
+            this_length
+        };
+
+        for i in (0..min_length).rev() {
+            match self.0[i].cmp(&other.0[i]) {
+                Ordering::Equal => (),
+                order => return order,
+            }
+        }
+
+        this_length.cmp(&other_length)
+    }
+}
+
+impl<T: PartialEq<U>, U> PartialEq<Stack<U>> for Stack<T> {
+    fn eq(&self, other: &Stack<U>) -> bool { self == &other.0.as_slice() }
+}
+
+impl<T: PartialEq<U>, U> PartialEq<&[U]> for Stack<T> {
+    fn eq(&self, other: &&[U]) -> bool {
+        let this_length = self.0.len();
+        let other_length = other.len();
+
+        let min_length = if other_length < this_length {
+            other_length
+        } else {
+            this_length
+        };
+
+        for i in (0..min_length).rev() {
+            if self.0[i] != other[i] { return false; }
+        }
+
+        this_length == other_length
+    }
+}
+
+impl<T: PartialEq<U>, U, const N: usize> PartialEq<&[U; N]> for Stack<T> {
+    fn eq(&self, other: &&[U; N]) -> bool {
+        let this_length = self.0.len();
+        let min_length = if N < this_length { N } else { this_length };
+
+        for i in (0..min_length).rev() {
+            if self.0[i] != other[i] { return false; }
+        }
+
+        this_length == N
+    }
+}
+
+impl<T: PartialEq<U>, U> PartialEq<&mut [U]> for Stack<T> {
+    fn eq(&self, other: &&mut [U]) -> bool {
+        let this_length = self.0.len();
+        let other_length = other.len();
+
+        let min_length = if other_length < this_length {
+            other_length
+        } else {
+            this_length
+        };
+
+        for i in (0..min_length).rev() {
+            if self.0[i] != other[i] { return false; }
+        }
+
+        this_length == other_length
+    }
+}
+
+impl<T: PartialEq<U>, U> PartialEq<[U]> for Stack<T> {
+    fn eq(&self, other: &[U]) -> bool { self == &other }
+}
+
+impl<T: PartialOrd> PartialOrd for Stack<T> {
+    fn partial_cmp(&self, other: &Self) -> Option<Ordering> {
+        let this_length = self.0.len();
+        let other_length = other.0.len();
+
+        let min_length = if other_length < this_length {
+            other_length
+        } else {
+            this_length
+        };
+
+        for i in (0..min_length).rev() {
+            match self.0[i].partial_cmp(&other.0[i]) {
+                Some(Ordering::Equal) => (),
+                order => return order,
+            }
+        }
+
+        Some(this_length.cmp(&other_length))
+    }
 }
