@@ -856,7 +856,7 @@ impl<T> From<Vec<T>> for Stack<T> {
     fn from(vec: Vec<T>) -> Self { Self(vec) }
 }
 
-impl<const N: usize, T> From<[T; N]> for Stack<T> {
+impl<T, const N: usize> From<[T; N]> for Stack<T> {
     /// Creates a stack from a vector of elements with the last element on top.
     ///
     /// # Example
@@ -867,6 +867,34 @@ impl<const N: usize, T> From<[T; N]> for Stack<T> {
     /// assert_eq!(stack.peek(), Some(&9));
     /// ```
     fn from(array: [T; N]) -> Self { Self(Vec::from(array)) }
+}
+
+impl<T: Clone, const N: usize> From<&[T; N]> for Stack<T> {
+    /// Creates a stack from a slice of clone-able elements with the last element on top.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let elements = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    /// let mut stack: Stack<i32> = Stack::from(elements.as_slice());
+    ///
+    /// assert_eq!(stack.peek(), Some(&9));
+    /// ```
+    fn from(array: &[T; N]) -> Self { Self::from(Vec::from(array)) }
+}
+
+impl<T: Clone, const N: usize> From<&mut [T; N]> for Stack<T> {
+    /// Creates a stack from a slice of clone-able elements with the last element on top.
+    ///
+    /// # Example
+    /// ```
+    /// # use colliflower::Stack;
+    /// let elements = vec![0, 1, 2, 3, 4, 5, 6, 7, 8, 9];
+    /// let mut stack: Stack<i32> = Stack::from(elements.as_slice());
+    ///
+    /// assert_eq!(stack.peek(), Some(&9));
+    /// ```
+    fn from(array: &mut [T; N]) -> Self { Self::from(Vec::from(array)) }
 }
 
 impl<T: Clone> From<&[T]> for Stack<T> {
